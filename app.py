@@ -105,8 +105,8 @@ def analyse(opp_bytes: bytes, roster_bytes: bytes, region: str, reported_pct: fl
     return fd.run(cfg, use_ai=False, export_outputs=True)
 
 
-SOURCE_COLS = {which: fd.source_columns(fd.load_config(HERE / "config.json"), which)
-               for which in ("opportunity", "roster")}
+CFG0 = fd.load_config(HERE / "config.json")
+SOURCE_COLS = {which: fd.source_columns(CFG0, which) for which in ("opportunity", "roster")}
 DEAL_KEYS = {SOURCE_COLS["opportunity"][f] for f in ("opp_id", "pipeline_stage")}
 TEAM_KEYS = {SOURCE_COLS["roster"][f] for f in ("rep_name", "quota_usd")}
 
@@ -144,6 +144,15 @@ class LocalFile:
 
 
 DEMO_FILES = [LocalFile(p) for p in os.environ.get("FORECAST_DEMO_FILES", "").split(";") if p.strip()]
+
+
+def sample_files() -> list:
+    """The bundled synthetic export, so a visitor can see the whole thing without finding a CSV first."""
+    return [LocalFile(CFG0["opportunity_file"]), LocalFile(CFG0["roster_file"])]
+
+
+def chosen_files(uploads) -> list:
+    return list(uploads or []) or (sample_files() if st.session_state.get("use_sample") else DEMO_FILES)
 
 
 def m(x) -> str:
@@ -215,13 +224,13 @@ def chip(text, kind=""):
 # Top bar + data source
 # ---------------------------------------------------------------------------------------
 st.session_state.setdefault("nav", "Overview")
-opp_up, roster_up, notes = identify(st.session_state.get("uploads") or DEMO_FILES)
+opp_up, roster_up, notes = identify(chosen_files(st.session_state.get("uploads")))
 ready = bool(opp_up and roster_up)
 
-top_chips = ""
+top_chips = chip("Sample data", "grey") if st.session_state.get("use_sample") and not st.session_state.get("uploads") else ""
 if ready and "last_facts" in st.session_state:
     lf = st.session_state["last_facts"]
-    top_chips = ((chip(lf["region"]) if lf["region"] != "Region" else "") + chip(f"Data as of {lf['snapshot_date']}", "grey")
+    top_chips += ((chip(lf["region"]) if lf["region"] != "Region" else "") + chip(f"Data as of {lf['snapshot_date']}", "grey")
                  + chip(f"{lf['days_left_in_quarter']} days left in quarter", "red"))
 st.html(f"""<div class="topbar"><img src="data:image/png;base64,{LOGO_B64}">
   <div><div class="t1">Forecast Diagnostic</div><div class="t2">Sales Operations</div></div>
@@ -240,7 +249,7 @@ with st.expander(label, expanded=not ready):
                                    step=0.1, format="%.1f", placeholder="e.g. 91", key="reported",
                                    help="If leadership quotes a forecast %, the app checks which way of adding up "
                                         "the pipeline reproduces it.")
-opp_up, roster_up, notes = identify(uploads or DEMO_FILES)
+opp_up, roster_up, notes = identify(chosen_files(uploads))
 for n in notes:
     st.warning(n)
 
@@ -262,6 +271,12 @@ if not (opp_up and roster_up):
             col.html(f"""<div style="padding:14px 0"><span class="chip">{k}</span>
               <div style="font-weight:700;font-size:16px;margin-top:10px">{t}</div>
               <div class="muted" style="margin-top:4px">{b}</div></div>""")
+        b1, b2 = st.columns([1, 2.4])
+        if b1.button("▶  Try it with the sample data", width="stretch", type="primary"):
+            st.session_state["use_sample"] = True
+            st.rerun()
+        b2.caption("A synthetic CRM export bundled with the repo: 479 deals, 29 seats, 4 currencies, with "
+                   "data-quality problems planted on purpose.")
         with st.expander("What the two files need to contain"):
             c1, c2 = st.columns(2)
             c1.markdown("**Deals file** (one row per opportunity)  \n" + ", ".join(f"`{c}`" for c in SOURCE_COLS["opportunity"].values()))

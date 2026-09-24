@@ -104,9 +104,21 @@ def _rename_to_toolkit_fields(df: pd.DataFrame, cfg: dict, which: str) -> pd.Dat
     return df.rename(columns=mapping)
 
 
+def _apply_value_maps(df: pd.DataFrame, cfg: dict, which: str) -> pd.DataFrame:
+    """Translate a CRM's own vocabulary into the toolkit's (HubSpot's 'COMMIT' -> 'Commit', and so on).
+    Values that are not listed are passed through untouched."""
+    maps = ((cfg.get("columns") or {}).get("value_maps") or {}).get(which) or {}
+    for field, mapping in maps.items():
+        if field in df.columns:
+            df[field] = df[field].map(lambda v: mapping.get(v, v))
+    return df
+
+
 def load_data(cfg: dict) -> tuple[pd.DataFrame, pd.DataFrame]:
-    opp = _rename_to_toolkit_fields(pd.read_csv(cfg["opportunity_file"]), cfg, "opportunity")
-    roster = _rename_to_toolkit_fields(pd.read_csv(cfg["roster_file"]), cfg, "roster")
+    opp = _apply_value_maps(_rename_to_toolkit_fields(pd.read_csv(cfg["opportunity_file"]), cfg, "opportunity"),
+                            cfg, "opportunity")
+    roster = _apply_value_maps(_rename_to_toolkit_fields(pd.read_csv(cfg["roster_file"]), cfg, "roster"),
+                               cfg, "roster")
     _check_schema(opp, REQUIRED_OPP_COLS, "opportunity file", source_columns(cfg, "opportunity"))
     _check_schema(roster, REQUIRED_ROSTER_COLS, "roster file", source_columns(cfg, "roster"))
     opp["created_date"] = pd.to_datetime(opp["created_date"], errors="coerce")
@@ -623,7 +635,7 @@ def build_facts(res: "Results") -> dict:
         "past_due_weighted_at_haircut_usd": _r(op["past_due_weighted_usd"].sum()
                                                * (1 - cfg["thresholds"]["past_due_haircut"]), 0),
         # the last open stage (whatever the CRM calls it) is where a slipped deal costs the most
-        "final_stage": (final := cfg["stages"]["open"][-1]),
+        "final_stage": (cfg.get("stage_labels") or {}).get(final := cfg["stages"]["open"][-1], final),
         "past_due_final_stage_weighted_usd": _r(op.loc[op["past_due"] & (op["pipeline_stage"] == final),
                                                        "weighted_open_usd"].sum(), 0),
         "past_due_final_stage_deals": int((op["past_due"] & (op["pipeline_stage"] == final)).sum()),
@@ -766,7 +778,8 @@ def template_summary(facts: dict) -> str:
     if v["vacant_seats"]:
         orphan = (f" {v['orphaned_open_deals']} open deals ({m(v['orphaned_open_usd'])}) have no active owner."
                   if v["orphaned_open_deals"] else "")
-        lines.append(f"- **Empty seats:** {v['vacant_seats']} vacant seats carry {m(v['vacant_quota_usd'])} of quota with "
+        seats = f"{v['vacant_seats']} vacant seat" + ("s carry" if v["vacant_seats"] > 1 else " carries")
+        lines.append(f"- **Empty seats:** {seats} {m(v['vacant_quota_usd'])} of quota with "
                      f"only {m(v['forecast_on_vacant_seats_usd'])} forecast against it "
                      f"({p(d['vacant_seats_share_of_gap'])} of the gap).{orphan}")
     if ph["past_due_deals"]:

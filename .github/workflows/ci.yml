@@ -24,6 +24,8 @@ jobs:
         run: pytest -q
       - name: Run the full diagnostic end to end
         run: python forecast_diagnostic.py --no-ai
+      - name: Run the same code for the second customer (different CRM, config only)
+        run: python forecast_diagnostic.py --config customers/acme_hubspot.json --no-ai
       - name: Upload the generated outputs
         if: matrix.python-version == '3.12'
         uses: actions/upload-artifact@v4

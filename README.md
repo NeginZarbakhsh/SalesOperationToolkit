@@ -5,7 +5,7 @@
 [![CI](https://github.com/NeginZarbakhsh/SalesOperationToolkit/actions/workflows/ci.yml/badge.svg)](https://github.com/NeginZarbakhsh/SalesOperationToolkit/actions/workflows/ci.yml)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
-[![Tests](https://img.shields.io/badge/tests-16%20passing-brightgreen)](tests/test_pipeline.py)
+[![Tests](https://img.shields.io/badge/tests-21%20passing-brightgreen)](tests/test_pipeline.py)
 
 Point it at two ordinary CRM report exports — opportunities and user quotas — and it answers the question a
 VP of Sales actually asks: **why are we missing the number, where exactly, and what do we do in the next 14
@@ -129,6 +129,32 @@ all still work, and the output records which path was used.
 |---|---|
 | ![Data trust page](docs/img/dashboard_data_trust.png) | ![Ask AI page](docs/img/dashboard_ask_ai.png) |
 
+## Onboarding a second customer is a config file, not a fork
+
+`customers/acme_hubspot.json` points the same engine at a different company running a different CRM. No code
+changes, no branches, no `if customer ==` anywhere:
+
+```bash
+python forecast_diagnostic.py                                          # Northwind, Salesforce-shaped export
+python forecast_diagnostic.py --config customers/acme_hubspot.json     # Acme, HubSpot-shaped export
+```
+
+| | Customer 1 (default) | Customer 2 |
+|---|---|---|
+| CRM shape | Salesforce | HubSpot |
+| Opportunity id | `Id` | `hs_object_id` |
+| Stage field and values | `StageName`: *Proposal/Price Quote, Negotiation/Review* | `dealstage`: *presentationscheduled, contractsent* |
+| Forecast category | `ForecastCategoryName`: *Commit, Best Case* | `hs_forecast_category`: *COMMIT, BEST_CASE* |
+| Win probability | `Probability`, 0-100 | `hs_deal_stage_probability`, 0-1 |
+| Seat status | `User_Status__c`: *Active / Open Req* | `employment_status`: *ACTIVE / VACANT* |
+| Region, currencies, quarter | North America · USD CAD MXN BRL · FY27-Q4 | Nordics & Ireland · EUR SEK NOK DKK · 2027-Q3 |
+| Result | 89.1% of $10.88M, $1.19M gap | 89.8% of $5.21M, $532K gap |
+
+Three config blocks do the work: `columns` (their headers → the toolkit's fields), `value_maps` (their
+vocabulary → the toolkit's), and `stages` + `stage_labels` (their stage ids, and how to print them in a
+briefing a VP reads). CI runs **both** customers on every push, so a change that would break an onboarding
+fails the build.
+
 ## Quickstart
 
 ```bash
@@ -136,11 +162,13 @@ git clone https://github.com/NeginZarbakhsh/SalesOperationToolkit.git
 cd SalesOperationToolkit
 pip install -r requirements.txt
 
-python data/generate_sample_data.py   # optional: rebuild the synthetic sample export
-
 python forecast_diagnostic.py     # full run → outputs/ (Excel, charts, summary.md, facts.json)
-streamlit run app.py              # the dashboard
-pytest -q                         # 16 tests on the sample data
+streamlit run app.py              # the dashboard, then press "Try it with the sample data"
+
+pip install -r requirements-dev.txt
+pytest -q                         # 21 tests, both customers
+python data/generate_sample_data.py      # optional: rebuild customer 1's synthetic export
+python data/generate_hubspot_sample.py   # optional: rebuild customer 2's
 ```
 
 Optional AI features: `cp .env.example .env` and add your own `ANTHROPIC_API_KEY` (`.env` is git-ignored).
@@ -180,6 +208,8 @@ column name. Nothing else changes.
   the reader can see *why* it is not trusted.
 - **Structural ≠ execution.** Vacant seats are separated from rep performance everywhere, including in the
   bridge chart, because they lead to different actions (hire vs coach).
+- **Onboarding is configuration.** A new customer means a JSON file: column mapping, value mapping, stage
+  names and labels, thresholds. The second customer in this repo exists to keep that honest.
 - **Deterministic first, AI second.** Every output exists without an API key; the model improves the prose,
   not the numbers.
 - **Tested and wired to CI.** The sample data has a fixed seed, so a change that moves the forecast fails a
@@ -193,9 +223,10 @@ app.py                        six-page Streamlit dashboard
 agent.py                      8 analysis tools + the tool-using agent behind "Ask AI"
 config.json                   everything that changes per quarter or per region
 prompts/vp_summary_prompt.md  system prompt for the AI briefing (tone and format live here, not in code)
-data/                         synthetic sample data + the generator that makes it
+data/                         the two synthetic exports and the generators that make them
 notebooks/walkthrough.ipynb   the pipeline step by step, with results
-tests/test_pipeline.py        16 end-to-end tests, run in CI on 3.11 and 3.12
+tests/                        21 end-to-end tests (both customers), run in CI on 3.11 and 3.12
+customers/acme_hubspot.json   a second customer on a different CRM, to prove onboarding is config only
 docs/                         sample briefing and the screenshots above
 ```
 

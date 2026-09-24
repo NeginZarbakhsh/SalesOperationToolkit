@@ -1,0 +1,117 @@
+{
+  "_readme": "A second customer, to show that onboarding one is a config file rather than a fork. Same engine, different CRM (HubSpot-style property names and values), different region, currencies, stage vocabulary and fiscal quarter. Run it with: python forecast_diagnostic.py --config customers/acme_hubspot.json",
+  "region_name": "Nordics & Ireland",
+  "opportunity_file": "../data/hubspot_deals_export.csv",
+  "roster_file": "../data/hubspot_owner_quotas_export.csv",
+  "output_dir": "../outputs/acme",
+  "columns": {
+    "win_probability_scale": 1,
+    "opportunity": {
+      "opp_id": "hs_object_id",
+      "account_id": "associatedcompanyid",
+      "account_name": "company_name",
+      "segment": "team__c",
+      "country": "country",
+      "rep_name": "hubspot_owner_name",
+      "manager_name": "owner_manager",
+      "deal_type": "dealtype",
+      "pipeline_stage": "dealstage",
+      "forecast_category": "hs_forecast_category",
+      "created_date": "createdate",
+      "close_date": "closedate",
+      "age_days": "days_open",
+      "amount_local": "amount",
+      "currency": "deal_currency_code",
+      "amount_usd": "amount_in_home_currency",
+      "win_probability": "hs_deal_stage_probability",
+      "loss_reason": "closed_lost_reason"
+    },
+    "roster": {
+      "rep_name": "owner_name",
+      "manager_name": "manager_name",
+      "country": "country_code",
+      "segment": "team_name",
+      "quota_usd": "quota_amount_usd",
+      "tenure_months": "months_in_seat",
+      "headcount_status": "employment_status",
+      "historical_attainment_pct_q_minus_1": "attainment_last_quarter",
+      "historical_attainment_pct_q_minus_2": "attainment_two_quarters_ago"
+    },
+    "_value_maps_readme": "The CRM's own vocabulary, translated into the toolkit's. Anything not listed passes through.",
+    "value_maps": {
+      "opportunity": {
+        "forecast_category": {
+          "COMMIT": "Commit",
+          "BEST_CASE": "Best Case",
+          "PIPELINE": "Pipeline",
+          "OMITTED": "Omitted",
+          "CLOSED": "Closed"
+        },
+        "deal_type": {
+          "newbusiness": "New Business",
+          "renewal": "Renewal",
+          "expansion": "Expansion"
+        }
+      }
+    }
+  },
+  "snapshot_date": "auto",
+  "quarter_start": "auto",
+  "quarter_end": "auto",
+  "reported_forecast_pct": 0.9,
+  "stages": {
+    "open": [
+      "qualifiedtobuy",
+      "presentationscheduled",
+      "decisionmakerboughtin",
+      "contractsent"
+    ],
+    "early": [
+      "qualifiedtobuy",
+      "presentationscheduled"
+    ],
+    "late": [
+      "decisionmakerboughtin",
+      "contractsent"
+    ],
+    "won": "closedwon",
+    "lost": "closedlost"
+  },
+  "_stage_labels_readme": "How to print the CRM's stage ids in a briefing a VP reads.",
+  "stage_labels": {
+    "qualifiedtobuy": "Qualified",
+    "presentationscheduled": "Presentation",
+    "decisionmakerboughtin": "Decision Maker Bought In",
+    "contractsent": "Contract Sent",
+    "closedwon": "Closed Won",
+    "closedlost": "Closed Lost"
+  },
+  "fx_to_usd": "auto",
+  "fx_tolerance": 0.02,
+  "country_aliases": {
+    "Sweden": "SE",
+    "Denmark": "DK",
+    "Ireland": "IE",
+    "Norway": "NO",
+    "Finland": "FI"
+  },
+  "active_headcount_status": "ACTIVE",
+  "thresholds": {
+    "stalled_age_days": 75,
+    "chronic_underperformance": 0.9,
+    "commit_min_win_prob": 0.5,
+    "uncommitted_high_win_prob": 0.7,
+    "rep_concentration_share": 0.5,
+    "past_due_haircut": 0.5
+  },
+  "ai_summary": {
+    "enabled": true,
+    "model": "claude-opus-5",
+    "effort": "medium",
+    "prompt_file": "../prompts/vp_summary_prompt.md"
+  },
+  "agent": {
+    "model": "claude-opus-5",
+    "effort": "medium"
+  }
+}

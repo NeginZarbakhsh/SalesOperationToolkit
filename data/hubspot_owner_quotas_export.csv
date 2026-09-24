@@ -1,0 +1,19 @@
+owner_name,manager_name,country_code,team_name,quota_amount_usd,months_in_seat,employment_status,attainment_last_quarter,attainment_two_quarters_ago
+Anders Bergstrom,Sigrid Halvorsen,NO,Nordics Enterprise,540000,27,ACTIVE,1.07,0.98
+Linnea Falk,Sigrid Halvorsen,NO,Nordics Enterprise,540000,20,ACTIVE,1.0,1.06
+Mikkel Sorensen,Sigrid Halvorsen,NO,Nordics Enterprise,540000,33,ACTIVE,0.92,1.03
+Saoirse Donnelly,Ronan Gallagher,IE,Ireland Mid-Market,300000,29,ACTIVE,1.09,1.01
+Cathal Mulvaney,Ronan Gallagher,IE,Ireland Mid-Market,300000,17,ACTIVE,0.95,1.04
+Aoife Brennan,Ronan Gallagher,IE,Ireland Mid-Market,300000,23,ACTIVE,1.03,0.94
+"VACANT (Ferris territory, req open)",Ronan Gallagher,IE,Ireland Mid-Market,300000,0,VACANT,0.97,0.91
+Johan Ostberg,Elin Waller,SE,Sweden Mid-Market,280000,21,ACTIVE,1.01,0.97
+Petra Lindholm,Elin Waller,SE,Sweden Mid-Market,280000,26,ACTIVE,0.85,0.87
+Gustav Ahlin,Elin Waller,SE,Sweden Mid-Market,280000,14,ACTIVE,0.98,1.05
+Nora Ekstrom,Elin Waller,SE,Sweden Mid-Market,280000,31,ACTIVE,1.02,0.99
+Emil Kofoed,Freja Lundqvist,DK,Denmark SMB,185000,24,ACTIVE,1.05,1.02
+Ida Jorgensen,Freja Lundqvist,DK,Denmark SMB,185000,13,ACTIVE,0.97,0.96
+Rasmus Vang,Freja Lundqvist,DK,Denmark SMB,185000,19,ACTIVE,0.99,1.08
+Clara Bech,Freja Lundqvist,DK,Denmark SMB,185000,8,ACTIVE,0.93,0.95
+Aino Virtanen,Tuomas Leino,FI,Finland SMB,175000,22,ACTIVE,1.04,1.01
+Eero Nieminen,Tuomas Leino,FI,Finland SMB,175000,11,ACTIVE,0.9,0.96
+Helmi Rautio,Tuomas Leino,FI,Finland SMB,175000,28,ACTIVE,1.06,0.97
