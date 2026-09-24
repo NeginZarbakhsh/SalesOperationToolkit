@@ -335,11 +335,16 @@ def build_insights() -> list[dict]:
         cat = {k: v for k, v in F["rollup_methods_pct_of_quota"].items() if "category" in k}
         wp = F["forecast_category"]["avg_win_prob_by_category"]
         lo, hi = min(cat.values()), max(cat.values())
-        out.append(dict(tag="data", title="The 'Commit' label can't be trusted",
+        commit_wp, pipe_wp = wp.get("Commit", 0), wp.get("Pipeline", 0)
+        compare = (f"'Commit' deals average {commit_wp:.0%} win probability, barely different from 'Pipeline' "
+                   f"({pipe_wp:.0%})." if commit_wp - pipe_wp < 0.08 else
+                   f"'Commit' deals average {commit_wp:.0%} win probability against {pipe_wp:.0%} for 'Pipeline', "
+                   f"but the label still can't carry the forecast.")
+        out.append(dict(tag="data", title="The 'Commit' label can't call the quarter",
                         impact=f"{lo:.0%} to {hi:.0%}", label="what the reps' labels imply", neutral=True,
-                        body=f"'Commit' deals average {wp.get('Commit', 0):.0%} win probability, the same as "
-                             f"'Pipeline' ({wp.get('Pipeline', 0):.0%}). {fc['commit_on_early_stage_deals']} Commit deals "
-                             f"are still early stage. The forecast here uses stage and win probability instead.",
+                        body=f"{compare} {fc['commit_on_early_stage_deals']} Commit deals are still early stage and "
+                             f"{fc['late_stage_omitted_or_blank_deals']} late-stage deals are Omitted or blank, so the "
+                             f"forecast here uses stage and win probability instead.",
                         team=None, rank=0))
     return out[:4]
 
@@ -886,7 +891,7 @@ def ask(question: str, ai_on: bool):
                      "note": "Answered without AI: computed directly from the checked data."})
     else:
         chat.append({"role": "assistant", "text": "This question needs Claude. Add an API key to "
-                                                  "`Part_B_Toolkit/.env` and restart the app."})
+                                                  "`.env` in the project folder and restart the app."})
     st.rerun()
 
 
@@ -905,7 +910,7 @@ def page_ask():
             st.session_state.pop("ask_agent", None)
         st.caption(f"🟢 Claude connected ({res.cfg['agent']['model']})" if ai_on else
                    "⚪ Offline: no API key found. The quick answers work; the other questions and free chat need a key "
-                   "in Part_B_Toolkit/.env.")
+                   "in a .env file in the project folder.")
         st.html('<div class="kicker" style="margin-top:6px">Quick answers (work even without AI)</div>')
         cols = st.columns(3)
         for i, q in enumerate(ag.QUICK_QUESTIONS):
@@ -932,4 +937,4 @@ def page_ask():
  "Actions": page_actions, "Ask AI": page_ask}[page]()
 
 st.caption("Forecast = deals already won + each open deal x its win probability, after the data checks. "
-           "Same engine as the Part B notebook (forecast_diagnostic.py).")
+           "Same engine as the notebook and the command line (forecast_diagnostic.py).")

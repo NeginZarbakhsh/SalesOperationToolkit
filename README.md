@@ -1,116 +1,142 @@
-# Forecast Diagnostic Toolkit
+# Sales Operation Toolkit
 
-**"Why is the region missing its number, where, and what should we do about it?"**
+### A forecast diagnostic that cleans the data, reconciles the number, finds the gap, and lets AI explain it — never calculate it.
 
-A re-runnable sales-forecast diagnostic for Sales Operations teams. It takes two ordinary CRM exports
-(opportunities and a rep roster), validates and cleans them, reconciles the forecast, finds where the gap
-sits, and produces an action plan, an Excel workbook and a short briefing for a VP.
+[![CI](https://github.com/NeginZarbakhsh/SalesOperationToolkit/actions/workflows/ci.yml/badge.svg)](https://github.com/NeginZarbakhsh/SalesOperationToolkit/actions/workflows/ci.yml)
+[![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue)](https://www.python.org/)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
+[![Tests](https://img.shields.io/badge/tests-10%20passing-brightgreen)](tests/test_pipeline.py)
 
-It is built around one rule: **the code does the maths, the AI only explains it**, and every number in an
-AI-written summary is checked back against the data before anyone sees it.
+Give it two ordinary CRM exports — opportunities and a rep roster — and it answers the question a VP of
+Sales actually asks: **why are we missing the number, where exactly, and what do we do in the next 14 days?**
 
-```
-opportunities.csv + rep_roster.csv
-  → 1. clean & validate    21 automated checks; every fix logged with the rows and $ it changed
-  → 2. reconcile           every plausible roll-up vs the reported number, on raw and clean data
-  → 3. diagnose            quota→forecast bridge; team / market / segment / rep / stage / cohort cuts
-  → 4. act                 past-due deals, deals with no owner, category fixes, stalled deals, coaching flags
-  → 5. summarise           a briefing written from a facts pack, with every number verified
-  → outputs/               Excel workbook (18 tabs), charts, summary.md, facts.json
-```
+![The dashboard](docs/img/dashboard_overview.png)
 
-On the bundled sample data the answer comes out as:
+---
 
-> **APAC is forecasting $8.20M against $9.21M quota (89.0%), a gap of $1.01M.** 70% of the gap sits in two
-> teams. 2 vacant seats carry $640K of quota with only $223K forecast against them, and 161 of 271 open deals
-> are past their close date, holding 60% of the weighted pipeline. If those deals close at half their stated
-> odds the region lands at 74%, so the quarter is called as a range: **74% to 89%**.
+## The problem
 
-![Quota to forecast bridge](docs/img/gap_bridge.png)
+A forecast roll-up is only as good as the fields under it. In a typical export, some deals are duplicated,
+some amounts never got converted from local currency, country names are typed by hand, a date field means
+two different things in different rows, and the rep's own "Commit" flag does not track reality. Add that up
+without looking and you get a number nobody can defend — and a leadership team focused on the wrong team.
 
-## Why it exists
+## The answer this produces
 
-A forecast roll-up is only as good as the fields underneath it. In most CRM exports some deals are
-duplicated, some amounts never got converted from local currency, country names are typed by hand, date
-fields mean different things in different rows, and the rep's own "Commit" flag does not track reality.
-Add those up without looking and you get a number nobody can defend.
+Run it on the bundled synthetic data and you get, in about two seconds:
 
-This toolkit refuses to produce a number before the inputs are validated, shows which roll-up reproduces the
-number leadership is quoting, and separates **structural** causes (a seat with quota and nobody in it) from
-**execution** causes (stale pipeline, losses, rep performance), because a VP acts on them differently.
-
-## Quickstart
-
-```bash
-pip install -r requirements.txt
-
-python data/generate_sample_data.py   # optional: regenerate the synthetic sample data
-python forecast_diagnostic.py         # full run; writes everything to outputs/
-streamlit run app.py                  # the dashboard, then drop the two CSVs in
-```
-
-Or open [`notebooks/walkthrough.ipynb`](notebooks/walkthrough.ipynb) to step through the pipeline with the
-results already rendered.
-
-## The dashboard
-
-`streamlit run app.py` opens a six-page dashboard in the browser, ordered the way a VP asks the questions:
-
-| Page | Answers |
+| | |
 |---|---|
-| **Overview** | Will we hit the number? The forecast, what it is made of, and a what-if slider for stale deals |
-| **Teams** | Where is the gap? By manager, market or segment, down to each rep and the deals to work |
-| **Pipeline** | How healthy are the deals? Late deals by stage, by cohort, and a team × stage heatmap |
-| **Data trust** | Can we trust the number? Every check, what was fixed, and which roll-up reproduces the reported % |
-| **Actions** | What do we do? A 14 / 30 / 60-day plan with owners, plus deal lists each manager can download |
-| **Ask AI** | Ask a question in plain English (optional, needs an API key) |
+| **Forecast** | **$8.20M against $9.21M quota = 89.0%**, a gap of $1.01M with 14 days left |
+| **Where** | 70% of the gap is in two of six teams |
+| **Why (structural)** | 2 empty seats carry $640K of quota with $223K forecast against them: 41% of the gap, while that team's active reps are at 97% |
+| **Why (pipeline)** | 161 of 271 open deals are past their close date, holding 60% of the weighted pipeline |
+| **Why (data)** | 6 "Commit" deals are still early stage and 36 late-stage deals are marked Omitted or blank, so a category roll-up lands 18 points off the stage-based number (71% vs 89%) |
+| **So what** | Call the quarter as a range, **74% to 89%**, and work the 6 ownerless deals and 51 past-due Negotiation deals first |
 
-## How the forecast is defined
+Every one of those numbers is computed in code, logged, and covered by a test.
+
+## How it works
+
+```mermaid
+flowchart LR
+    A["opportunities.csv<br/>rep_roster.csv"] --> B["1 · Clean &amp; validate<br/>21 checks, every fix logged"]
+    B --> C["2 · Reconcile<br/>which roll-up gives the reported %?"]
+    C --> D["3 · Diagnose<br/>team · market · segment · rep · stage · cohort"]
+    D --> E["4 · Act<br/>14/30/60-day plan, deal lists"]
+    E --> F["5 · Summarise<br/>facts pack → AI draft → number check"]
+    F --> G["Dashboard · Excel · charts · summary.md · facts.json"]
+```
+
+**1 · Clean and validate.** 21 automated checks. Problems the data itself can answer are fixed and logged
+with the rows and dollars they moved (duplicate rows, unconverted currency, country names, a broken age
+field). Problems only a person can answer are flagged, never guessed (blank categories, close dates already
+in the past, deals owned by an empty seat).
+
+**2 · Reconcile.** Every plausible way of adding up the forecast is computed on both the raw and the cleaned
+data, and compared with the number leadership is quoting, so the analysis starts from a number that can be
+defended:
 
 ```
 forecast = Closed Won (full value) + Σ(open deal amount × win probability)
 ```
 
-The self-reported `forecast_category` is **audited but never used for the number**. In the sample data,
-Commit, Best Case and Pipeline deals all carry roughly the same average win probability, and a category
-roll-up lands 18 points away from the stage-based one:
+**3 · Diagnose.** A quota → forecast bridge by team, with vacant seats split out from active reps, plus cuts
+by market, segment, rep, pipeline stage and deal cohort. Structural causes are separated from execution
+causes because a VP fixes them differently.
 
-![Which roll-up reproduces the reported number](docs/img/rollup_methods.png)
+**4 · Act.** Rule-based 14 / 30 / 60-day plan with an owner per action, and per-manager deal lists (no
+owner, past due, label mismatch, stalled) exported to Excel and CSV.
 
-## What it checks
+**5 · Summarise.** A briefing a VP can read in a minute, with the AI kept on a short leash (below).
 
-| Fixed automatically (the data can answer it) | Flagged for a person (only they can) |
-|---|---|
-| Exact duplicate rows, and duplicate IDs with conflicting values | Blank forecast category |
-| `amount_usd` not converted at the currency's rate | Open deals whose close date has already passed |
-| Country spelled out instead of the roster's code | Open deals owned by a vacant seat |
-| `age_days` inconsistent with the dates (including negatives) | "Commit" on an early-stage deal; late-stage deals marked Omitted |
-| | Closed Lost with no loss reason; one account name under several IDs |
-
-Every fix is written to a data-quality log with the rows and dollars it changed, so the cleaned number stays
-auditable:
-
-![Past-due pipeline by team](docs/img/past_due_pipeline.png)
-
-## Where AI is used, and where it is not
+## Where AI is used — and where it deliberately is not
 
 | Step | Who does it |
 |---|---|
-| Cleaning, validation, every calculation, the action plan | **Code only.** No AI involved |
-| The VP briefing | Claude writes prose **from a pre-computed facts pack**, then `verify_numbers()` checks every figure in the text against that pack. A draft with an untraceable number is rejected and the deterministic template is used instead |
-| "Ask AI" page | Claude chooses among 8 analysis tools that query the validated data; the code computes every number, and each answer shows the tools it used |
+| Cleaning, validation, every calculation, the action plan | **Code only.** No model involved |
+| The VP briefing | Claude writes prose **from a pre-computed facts pack**, then `verify_numbers()` re-checks every figure in the text against that pack. A draft containing a number that cannot be traced is **rejected** and the deterministic template is shipped instead |
+| The "Ask AI" page | A tool-using agent: Claude picks among **8 analysis tools** that query the validated data, the code computes every number, and each answer shows the tools it called plus a per-number trace |
 
-The AI features are **optional**. Without an API key the toolkit, the dashboard and the deterministic
-summary all still work, and the output records which path was used. To enable them, copy `.env.example` to
-`.env` and add your own key (`.env` is git-ignored).
+This is the part I care most about. An LLM that writes a confident wrong number is worse than no summary at
+all, so the model never sees a calculator and never sees raw rows it did not ask for:
 
-## Sample data
+```python
+text  = ai_summary(facts, cfg)          # the model only writes prose
+check = verify_numbers(text, facts)     # every $ , % and count is matched back to the facts pack
+if not check["verified"].all():         # one untraceable number and the draft is dropped
+    text = template_summary(facts)
+```
 
-The files in `data/` are **synthetic**, produced by [`data/generate_sample_data.py`](data/generate_sample_data.py)
-with a fixed seed. Teams, reps, accounts and amounts are invented, and the data-quality problems are planted
-on purpose so the diagnostic has something to find: 469 rows for 29 seats across 6 teams and 6 currencies.
+The guardrail is covered by a test that feeds it invented numbers and asserts they are caught
+([`tests/test_pipeline.py`](tests/test_pipeline.py)).
 
-Your own export needs these columns:
+The AI features are **optional**: with no API key, the toolkit, the dashboard and the deterministic summary
+all still work, and the output records which path was used.
+
+## The dashboard
+
+`streamlit run app.py`, then drop the two CSVs in. Six pages, in the order the questions get asked:
+
+| Page | Answers |
+|---|---|
+| **Overview** | Will we hit the number? What the forecast is made of, and a what-if slider for stale deals |
+| **Teams** | Where is the gap? By manager, market or segment, down to each rep and the deals to work |
+| **Pipeline** | How healthy are the deals? Late deals by stage, by cohort, and a team × stage heatmap |
+| **Data trust** | Can we trust it? Every check, what was fixed, which roll-up reproduces the reported % |
+| **Actions** | What do we do? The 14/30/60-day plan and per-manager deal lists |
+| **Ask AI** | Ask in plain English; the code answers, the model explains |
+
+| Data trust | Ask AI |
+|---|---|
+| ![Data trust page](docs/img/dashboard_data_trust.png) | ![Ask AI page](docs/img/dashboard_ask_ai.png) |
+
+## Quickstart
+
+```bash
+git clone https://github.com/NeginZarbakhsh/SalesOperationToolkit.git
+cd SalesOperationToolkit
+pip install -r requirements.txt
+
+python forecast_diagnostic.py     # full run → outputs/ (Excel, charts, summary.md, facts.json)
+streamlit run app.py              # the dashboard
+pytest -q                         # 10 tests on the sample data
+```
+
+Optional AI features: `cp .env.example .env` and add your own `ANTHROPIC_API_KEY` (`.env` is git-ignored).
+
+Prefer to read rather than run? [`notebooks/walkthrough.ipynb`](notebooks/walkthrough.ipynb) has the whole
+pipeline with results already rendered, and [`docs/sample_summary.md`](docs/sample_summary.md) is the
+briefing it produces.
+
+## The sample data is synthetic
+
+`data/` is generated by [`data/generate_sample_data.py`](data/generate_sample_data.py) with a fixed seed:
+an invented APAC region, 6 teams, 29 seats, 469 deals, 6 currencies. The data-quality problems are **planted
+on purpose** so the diagnostic has something to find, and the planted counts are exactly what the tests
+assert. No company data is used anywhere in this repo.
+
+To run it on a real export, point `config.json` at your two CSVs. Required columns:
 
 - **Opportunities:** `opp_id, account_id, account_name, segment, country, rep_name, manager_name, deal_type,
   pipeline_stage, forecast_category, created_date, close_date, age_days, amount_local, currency, amount_usd,
@@ -118,36 +144,47 @@ Your own export needs these columns:
 - **Rep roster:** `rep_name, manager_name, country, segment, quota_usd, tenure_months, headcount_status,
   historical_attainment_pct_q_minus_1, historical_attainment_pct_q_minus_2`
 
-## Configuration
+## Design decisions worth calling out
 
-Everything that changes per quarter or per region lives in `config.json`, not in the code: file paths, region
-name, the reported forecast %, stage names, FX handling, country spellings, the active headcount status, and
-the thresholds (stalled age, chronic underperformance, Commit minimum win probability, rep concentration,
-past-due haircut). `"auto"` means the toolkit infers the value from the data and prints what it inferred.
+- **Config over code.** Stage names, FX handling, country spellings, thresholds, the reported forecast % and
+  the AI settings all live in `config.json`. `"auto"` means the toolkit infers the value (snapshot date,
+  quarter dates, FX rates) and prints what it inferred, so next quarter is a config edit, not a code edit.
+- **Fix vs flag.** A fix is only applied when the data can prove the right answer. Everything else is
+  surfaced as a decision for a human, with the rows and dollars attached.
+- **Stage × win probability, never the self-reported category.** The category is audited in its own view so
+  the reader can see *why* it is not trusted.
+- **Structural ≠ execution.** Vacant seats are separated from rep performance everywhere, including in the
+  bridge chart, because they lead to different actions (hire vs coach).
+- **Deterministic first, AI second.** Every output exists without an API key; the model improves the prose,
+  not the numbers.
+- **Tested and wired to CI.** The sample data has a fixed seed, so a change that moves the forecast fails a
+  test instead of quietly changing a number in a report.
 
-## Repo layout
+## Project structure
 
 ```
-forecast_diagnostic.py        the engine: clean, reconcile, diagnose, act, summarise
-app.py                        Streamlit dashboard
-agent.py                      the 8 analysis tools and the tool-using agent behind "Ask AI"
-config.json                   everything that changes per quarter
-prompts/vp_summary_prompt.md  the system prompt for the AI summary (tone and format live here, not in code)
-data/                         the synthetic sample data and the generator that makes it
-notebooks/walkthrough.ipynb   the pipeline, step by step, with results
-docs/                         sample summary and the charts used above
+forecast_diagnostic.py        the engine: clean → reconcile → diagnose → act → summarise
+app.py                        six-page Streamlit dashboard
+agent.py                      8 analysis tools + the tool-using agent behind "Ask AI"
+config.json                   everything that changes per quarter or per region
+prompts/vp_summary_prompt.md  system prompt for the AI briefing (tone and format live here, not in code)
+data/                         synthetic sample data + the generator that makes it
+notebooks/walkthrough.ipynb   the pipeline step by step, with results
+tests/test_pipeline.py        10 end-to-end tests, run in CI on 3.11 and 3.12
+docs/                         sample briefing and the screenshots above
 ```
 
-## Limitations and what I would add next
+## Limitations, and what I would build next
 
 - The number verifier catches figures that do not exist in the data, but not a real figure attached to the
-  wrong claim. A human still reviews the summary.
-- FX rates are inferred from the data. In production, read the finance rate table instead.
-- Column names are fixed; a column-mapping block in the config would handle other CRM exports.
-- No automated tests yet. Next: a synthetic dataset with planted issues asserting that each check fires
-  (the generator here is the first half of that).
-- Scheduling and distribution (a weekly run that emails each manager their own list) are not built.
+  wrong claim; a human still reviews the briefing.
+- FX rates are inferred from the data. In production, read the finance rate table.
+- Column names are fixed; a column-mapping block in the config would cover other CRM exports.
+- Not yet built: a scheduled weekly run that emails each manager their own list, and hosting behind SSO.
 
-## License
+## About
 
-MIT, see [LICENSE](LICENSE).
+Built by **Negin Zarbakhsh** as a study of how far a Sales Ops workflow can be automated while keeping every
+number auditable. Feedback and issues are welcome.
+
+MIT licensed — see [LICENSE](LICENSE).

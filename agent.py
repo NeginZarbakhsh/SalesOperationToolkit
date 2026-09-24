@@ -460,7 +460,7 @@ if __name__ == "__main__":
     q = " ".join(sys.argv[1:]) or "Why is the region missing its number, and where should the VP focus?"
     res = fd.run(use_ai=False, export_outputs=False)
     if not ai_available():
-        print("No ANTHROPIC_API_KEY found (environment or Part_B_Toolkit/.env). Offline answer:\n")
+        print("No ANTHROPIC_API_KEY found (environment or the .env file next to this script). Offline answer:\n")
         print(offline_answer(ForecastTools(res), "Why is the region missing its number?")[0])
         sys.exit(0)
     agent = ForecastAgent(res)
