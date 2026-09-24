@@ -156,7 +156,8 @@ esc = html.escape
 
 
 def md(text: str):
-    st.markdown(text.replace("$", r"\$"))  # "$...$" would otherwise render as a LaTeX formula
+    # "$...$" would otherwise render as a LaTeX formula, and "~90%" as strikethrough
+    st.markdown(text.replace("$", r"\$").replace("~", r"\~"))
 
 
 def table(df: pd.DataFrame, money=(), pct=(), dec=(), height="auto", column_config=None):

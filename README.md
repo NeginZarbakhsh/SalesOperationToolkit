@@ -103,7 +103,11 @@ if not check["verified"].all():         # one untraceable number and the draft i
 ```
 
 The guardrail is covered by a test that feeds it invented numbers and asserts they are caught
-([`tests/test_pipeline.py`](tests/test_pipeline.py)).
+([`tests/test_pipeline.py`](tests/test_pipeline.py)). Here it is on a live answer: the agent ran three
+look-ups, wrote the answer from their output, and the two figures it derived itself were flagged before
+anyone could pass them on.
+
+![A live answer with its tool trace and number check](docs/img/dashboard_ask_ai_answer.png)
 
 The AI features are **optional**: with no API key, the toolkit, the dashboard and the deterministic summary
 all still work, and the output records which path was used.
