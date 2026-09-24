@@ -5,10 +5,12 @@
 [![CI](https://github.com/NeginZarbakhsh/SalesOperationToolkit/actions/workflows/ci.yml/badge.svg)](https://github.com/NeginZarbakhsh/SalesOperationToolkit/actions/workflows/ci.yml)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
-[![Tests](https://img.shields.io/badge/tests-10%20passing-brightgreen)](tests/test_pipeline.py)
+[![Tests](https://img.shields.io/badge/tests-14%20passing-brightgreen)](tests/test_pipeline.py)
 
-Give it two ordinary CRM exports — opportunities and a rep roster — and it answers the question a VP of
-Sales actually asks: **why are we missing the number, where exactly, and what do we do in the next 14 days?**
+Point it at two ordinary CRM report exports — opportunities and user quotas — and it answers the question a
+VP of Sales actually asks: **why are we missing the number, where exactly, and what do we do in the next 14
+days?** The sample files are shaped like a Salesforce report export; any other CRM is a mapping in
+`config.json`, not a code change.
 
 ![The dashboard](docs/img/dashboard_overview.png)
 
@@ -27,12 +29,12 @@ Run it on the bundled synthetic data and you get, in about two seconds:
 
 | | |
 |---|---|
-| **Forecast** | **$8.20M against $9.21M quota = 89.0%**, a gap of $1.01M with 14 days left |
-| **Where** | 70% of the gap is in two of six teams |
-| **Why (structural)** | 2 empty seats carry $640K of quota with $223K forecast against them: 41% of the gap, while that team's active reps are at 97% |
-| **Why (pipeline)** | 161 of 271 open deals are past their close date, holding 60% of the weighted pipeline |
-| **Why (data)** | 6 "Commit" deals are still early stage and 36 late-stage deals are marked Omitted or blank, so a category roll-up lands 18 points off the stage-based number (71% vs 89%) |
-| **So what** | Call the quarter as a range, **74% to 89%**, and work the 6 ownerless deals and 51 past-due Negotiation deals first |
+| **Forecast** | **$9.69M against $10.88M quota = 89.1%**, a gap of $1.19M with 14 days left |
+| **Where** | 71% of the gap is in two of six teams |
+| **Why (structural)** | 2 empty seats carry $760K of quota with $252K forecast against them: 43% of the gap, while that team's active reps are at 97% |
+| **Why (pipeline)** | 147 of 270 open deals are past their close date, holding 54% of the weighted pipeline |
+| **Why (data)** | 10 "Commit" deals are still early stage and 35 late-stage deals are marked Omitted or blank; a category roll-up lands 31 points off the stage-based number (58% vs 89%) |
+| **So what** | Call the quarter as a range, **76% to 89%**, and work the 5 ownerless deals and 44 past-due Negotiation/Review deals first |
 
 Every one of those numbers is computed in code, logged, and covered by a test.
 
@@ -40,20 +42,26 @@ Every one of those numbers is computed in code, logged, and covered by a test.
 
 ```mermaid
 flowchart LR
-    A["opportunities.csv<br/>rep_roster.csv"] --> B["1 · Clean &amp; validate<br/>21 checks, every fix logged"]
-    B --> C["2 · Reconcile<br/>which roll-up gives the reported %?"]
-    C --> D["3 · Diagnose<br/>team · market · segment · rep · stage · cohort"]
-    D --> E["4 · Act<br/>14/30/60-day plan, deal lists"]
-    E --> F["5 · Summarise<br/>facts pack → AI draft → number check"]
+    A["CRM report exports<br/>opportunities + user quotas"] --> M["1 · Map columns<br/>config.json, any CRM"]
+    M --> B["2 · Clean &amp; validate<br/>21 checks, every fix logged"]
+    B --> C["3 · Reconcile<br/>which roll-up gives the reported %?"]
+    C --> D["4 · Diagnose<br/>team · market · segment · rep · stage · cohort"]
+    D --> E["5 · Act<br/>14/30/60-day plan, deal lists"]
+    E --> F["6 · Summarise<br/>facts pack → AI draft → number check"]
     F --> G["Dashboard · Excel · charts · summary.md · facts.json"]
 ```
 
-**1 · Clean and validate.** 21 automated checks. Problems the data itself can answer are fixed and logged
+**1 · Read any CRM export.** The `columns` block in `config.json` maps the export's own headers (`Id`,
+`StageName`, `ForecastCategoryName`, `Probability`, `Account.BillingCountry`, `Quota_USD__c` ...) onto the
+toolkit's field names, converts a 0-100 probability to 0-1, and names the exact column to map if one is
+missing. Stage names come from the config too, so a stage called "Negotiation/Review" needs no code change.
+
+**2 · Clean and validate.** 21 automated checks. Problems the data itself can answer are fixed and logged
 with the rows and dollars they moved (duplicate rows, unconverted currency, country names, a broken age
 field). Problems only a person can answer are flagged, never guessed (blank categories, close dates already
 in the past, deals owned by an empty seat).
 
-**2 · Reconcile.** Every plausible way of adding up the forecast is computed on both the raw and the cleaned
+**3 · Reconcile.** Every plausible way of adding up the forecast is computed on both the raw and the cleaned
 data, and compared with the number leadership is quoting, so the analysis starts from a number that can be
 defended:
 
@@ -61,14 +69,20 @@ defended:
 forecast = Closed Won (full value) + Σ(open deal amount × win probability)
 ```
 
-**3 · Diagnose.** A quota → forecast bridge by team, with vacant seats split out from active reps, plus cuts
+The self-reported forecast category is audited but never used for the number: in the sample data a Commit
+roll-up lands 31 points away from the stage-based one, and 10 deals flagged "Commit" have not even reached a
+late stage.
+
+![Which roll-up reproduces the reported number](docs/img/rollup_methods.png)
+
+**4 · Diagnose.** A quota → forecast bridge by team, with vacant seats split out from active reps, plus cuts
 by market, segment, rep, pipeline stage and deal cohort. Structural causes are separated from execution
 causes because a VP fixes them differently.
 
-**4 · Act.** Rule-based 14 / 30 / 60-day plan with an owner per action, and per-manager deal lists (no
+**5 · Act.** Rule-based 14 / 30 / 60-day plan with an owner per action, and per-manager deal lists (no
 owner, past due, label mismatch, stalled) exported to Excel and CSV.
 
-**5 · Summarise.** A briefing a VP can read in a minute, with the AI kept on a short leash (below).
+**6 · Summarise.** A briefing a VP can read in a minute, with the AI kept on a short leash (below).
 
 ## Where AI is used — and where it deliberately is not
 
@@ -118,9 +132,11 @@ git clone https://github.com/NeginZarbakhsh/SalesOperationToolkit.git
 cd SalesOperationToolkit
 pip install -r requirements.txt
 
+python data/generate_sample_data.py   # optional: rebuild the synthetic sample export
+
 python forecast_diagnostic.py     # full run → outputs/ (Excel, charts, summary.md, facts.json)
 streamlit run app.py              # the dashboard
-pytest -q                         # 10 tests on the sample data
+pytest -q                         # 14 tests on the sample data
 ```
 
 Optional AI features: `cp .env.example .env` and add your own `ANTHROPIC_API_KEY` (`.env` is git-ignored).
@@ -131,23 +147,28 @@ briefing it produces.
 
 ## The sample data is synthetic
 
-`data/` is generated by [`data/generate_sample_data.py`](data/generate_sample_data.py) with a fixed seed:
-an invented APAC region, 6 teams, 29 seats, 469 deals, 6 currencies. The data-quality problems are **planted
-on purpose** so the diagnostic has something to find, and the planted counts are exactly what the tests
-assert. No company data is used anywhere in this repo.
+`data/` is generated by [`data/generate_sample_data.py`](data/generate_sample_data.py) with a fixed seed: an
+invented North America region, 6 teams, 29 seats, 479 rows, 4 currencies, one fiscal quarter. The files carry
+Salesforce-style headers, and the data-quality problems are **planted on purpose** so the diagnostic has
+something to find. The planted counts are exactly what the tests assert. **No company data is used anywhere
+in this repo.**
 
-To run it on a real export, point `config.json` at your two CSVs. Required columns:
+The opportunity export looks like this:
 
-- **Opportunities:** `opp_id, account_id, account_name, segment, country, rep_name, manager_name, deal_type,
-  pipeline_stage, forecast_category, created_date, close_date, age_days, amount_local, currency, amount_usd,
-  win_probability, loss_reason`
-- **Rep roster:** `rep_name, manager_name, country, segment, quota_usd, tenure_months, headcount_status,
-  historical_attainment_pct_q_minus_1, historical_attainment_pct_q_minus_2`
+    Id, Name, AccountId, Account.Name, Account.BillingCountry, Segment__c, Owner.Name, Owner.Manager__c,
+    Type, StageName, ForecastCategoryName, Probability, Amount, CurrencyIsoCode, ConvertedAmount,
+    CreatedDate, CloseDate, Age_Days__c, Loss_Reason__c, NextStep, Fiscal_Quarter__c
+
+and the user export carries `User.Name, Manager.Name, Territory_Country__c, Segment__c, Quota_USD__c,
+Tenure_Months__c, User_Status__c, Attainment_Prior_Q1__c, Attainment_Prior_Q2__c`.
+
+To run it on your own export, edit the `columns` block in `config.json` so each toolkit field points at your
+column name. Nothing else changes.
 
 ## Design decisions worth calling out
 
-- **Config over code.** Stage names, FX handling, country spellings, thresholds, the reported forecast % and
-  the AI settings all live in `config.json`. `"auto"` means the toolkit infers the value (snapshot date,
+- **Config over code.** Column mapping, stage names, FX handling, country spellings, thresholds, the reported
+  forecast % and the AI settings all live in `config.json`. `"auto"` means the toolkit infers the value (snapshot date,
   quarter dates, FX rates) and prints what it inferred, so next quarter is a config edit, not a code edit.
 - **Fix vs flag.** A fix is only applied when the data can prove the right answer. Everything else is
   surfaced as a decision for a human, with the rows and dollars attached.
@@ -170,7 +191,7 @@ config.json                   everything that changes per quarter or per region
 prompts/vp_summary_prompt.md  system prompt for the AI briefing (tone and format live here, not in code)
 data/                         synthetic sample data + the generator that makes it
 notebooks/walkthrough.ipynb   the pipeline step by step, with results
-tests/test_pipeline.py        10 end-to-end tests, run in CI on 3.11 and 3.12
+tests/test_pipeline.py        14 end-to-end tests, run in CI on 3.11 and 3.12
 docs/                         sample briefing and the screenshots above
 ```
 
@@ -179,7 +200,6 @@ docs/                         sample briefing and the screenshots above
 - The number verifier catches figures that do not exist in the data, but not a real figure attached to the
   wrong claim; a human still reviews the briefing.
 - FX rates are inferred from the data. In production, read the finance rate table.
-- Column names are fixed; a column-mapping block in the config would cover other CRM exports.
 - Not yet built: a scheduled weekly run that emails each manager their own list, and hosting behind SSO.
 
 ## About

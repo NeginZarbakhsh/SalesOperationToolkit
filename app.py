@@ -105,6 +105,12 @@ def analyse(opp_bytes: bytes, roster_bytes: bytes, region: str, reported_pct: fl
     return fd.run(cfg, use_ai=False, export_outputs=True)
 
 
+SOURCE_COLS = {which: fd.source_columns(fd.load_config(HERE / "config.json"), which)
+               for which in ("opportunity", "roster")}
+DEAL_KEYS = {SOURCE_COLS["opportunity"][f] for f in ("opp_id", "pipeline_stage")}
+TEAM_KEYS = {SOURCE_COLS["roster"][f] for f in ("rep_name", "quota_usd")}
+
+
 def identify(files) -> tuple:
     """Work out which uploaded CSV is the deals file and which is the roster, from their column names."""
     opp = roster = None
@@ -115,13 +121,14 @@ def identify(files) -> tuple:
         except Exception:
             notes.append(f"**{f.name}** could not be read as a CSV file.")
             continue
-        if {"opp_id", "pipeline_stage"} <= cols:
+        if DEAL_KEYS <= cols:
             opp = f
-        elif {"rep_name", "quota_usd"} <= cols:
+        elif TEAM_KEYS <= cols:
             roster = f
         else:
-            notes.append(f"**{f.name}** doesn't look like a deals file (needs `opp_id`, `pipeline_stage`) or a roster "
-                         f"(needs `rep_name`, `quota_usd`).")
+            notes.append(f"**{f.name}** doesn't look like a deals file (needs {', '.join(sorted(DEAL_KEYS))}) or a "
+                         f"sales-team file (needs {', '.join(sorted(TEAM_KEYS))}). Column names are mapped in "
+                         f"config.json, so a different CRM export only needs a config change.")
     return opp, roster, notes
 
 
@@ -256,9 +263,10 @@ if not (opp_up and roster_up):
               <div class="muted" style="margin-top:4px">{b}</div></div>""")
         with st.expander("What the two files need to contain"):
             c1, c2 = st.columns(2)
-            c1.markdown("**Deals file** (one row per opportunity)  \n" + ", ".join(f"`{c}`" for c in fd.REQUIRED_OPP_COLS))
+            c1.markdown("**Deals file** (one row per opportunity)  \n" + ", ".join(f"`{c}`" for c in SOURCE_COLS["opportunity"].values()))
             c2.markdown("**Sales-team file** (one row per rep or open seat)  \n"
-                        + ", ".join(f"`{c}`" for c in fd.REQUIRED_ROSTER_COLS))
+                        + ", ".join(f"`{c}`" for c in SOURCE_COLS["roster"].values()))
+            st.caption("These are the column names set in `config.json`. Point that mapping at your own CRM export and nothing else changes.")
     st.stop()
 
 try:
@@ -309,9 +317,12 @@ def build_insights() -> list[dict]:
         title = f"{team_code(t)}: furthest behind"
         if len(lost):
             dtype = lost.groupby("deal_type")["amount_usd"].sum().idxmax()
-            reason = lost.assign(r=lost["loss_reason"].fillna("reason not logged")).groupby("r")["amount_usd"].sum().idxmax()
+            NOT_LOGGED = "(not logged)"
+            reason = lost.assign(r=lost["loss_reason"].fillna(NOT_LOGGED)).groupby("r")["amount_usd"].sum().idxmax()
             title = f"{team_code(t)}: {m(lost['amount_usd'].sum())} lost this quarter"
-            body += f" Most losses are {dtype.lower()} deals; the top reason is '{reason.lower()}'."
+            why = ("the largest share has no loss reason recorded" if reason == NOT_LOGGED
+                   else f"the top reason is '{reason.lower()}'")
+            body += f" Most losses are {dtype.lower()} deals; {why}."
         conc = res.actions["concentration"]
         if (conc["manager_name"] == mgr).any():
             c = conc[conc["manager_name"] == mgr].iloc[0]
@@ -826,7 +837,7 @@ MORE_QUESTIONS = [
     "What if the biggest open deal in the region slips out of the quarter?",
     "Which reps need coaching, and why?",
     "Why did we lose deals this quarter?",
-    "Which Negotiation deals are past their close date?",
+    "Which late-stage deals are past their close date?",
     "How much of the gap comes from the empty seats?",
     "Why is almost all of the Korea pipeline past due?",
     "What data problems did you find, and what did you fix?",

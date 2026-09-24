@@ -67,22 +67,40 @@ def load_config(path: str | Path | None = None, **overrides) -> dict:
     return cfg
 
 
-def _check_schema(df: pd.DataFrame, required: list[str], name: str) -> None:
+def _check_schema(df: pd.DataFrame, required: list[str], name: str, mapping: dict | None) -> None:
     missing = [c for c in required if c not in df.columns]
     if missing:
+        wanted = {c: (mapping or {}).get(c, c) for c in missing}
         raise ValueError(
-            f"{name} is missing required columns {missing}. "
-            f"If your CRM export uses different headers, rename them before running."
+            f"{name} is missing {len(missing)} required field(s). Expected these source columns: {wanted}. "
+            f"Map your export's headers in the 'columns' block of config.json."
         )
 
 
+def source_columns(cfg: dict, which: str) -> dict:
+    """{toolkit field: column name in the export}. An unmapped field keeps the toolkit's own name."""
+    required = REQUIRED_OPP_COLS if which == "opportunity" else REQUIRED_ROSTER_COLS
+    mapping = (cfg.get("columns") or {}).get(which) or {}
+    return {field: mapping.get(field, field) for field in required}
+
+
+def _rename_to_toolkit_fields(df: pd.DataFrame, cfg: dict, which: str) -> pd.DataFrame:
+    """A CRM export arrives with the CRM's own headers (Salesforce: Id, StageName, Amount...).
+    Rename them to the names the rest of the toolkit uses; anything unmapped is passed through."""
+    mapping = {source: field for field, source in source_columns(cfg, which).items() if source in df.columns}
+    return df.rename(columns=mapping)
+
+
 def load_data(cfg: dict) -> tuple[pd.DataFrame, pd.DataFrame]:
-    opp = pd.read_csv(cfg["opportunity_file"])
-    roster = pd.read_csv(cfg["roster_file"])
-    _check_schema(opp, REQUIRED_OPP_COLS, "opportunity file")
-    _check_schema(roster, REQUIRED_ROSTER_COLS, "roster file")
+    opp = _rename_to_toolkit_fields(pd.read_csv(cfg["opportunity_file"]), cfg, "opportunity")
+    roster = _rename_to_toolkit_fields(pd.read_csv(cfg["roster_file"]), cfg, "roster")
+    _check_schema(opp, REQUIRED_OPP_COLS, "opportunity file", source_columns(cfg, "opportunity"))
+    _check_schema(roster, REQUIRED_ROSTER_COLS, "roster file", source_columns(cfg, "roster"))
     opp["created_date"] = pd.to_datetime(opp["created_date"], errors="coerce")
     opp["close_date"] = pd.to_datetime(opp["close_date"], errors="coerce")
+    scale = float((cfg.get("columns") or {}).get("win_probability_scale", 1) or 1)
+    if scale != 1:                       # CRMs usually store probability as 0-100, the toolkit works in 0-1
+        opp["win_probability"] = opp["win_probability"] / scale
     return opp, roster
 
 
@@ -587,9 +605,11 @@ def build_facts(res: "Results") -> dict:
             / r.loc[(r["headcount_status"] == cfg["active_headcount_status"]) & r["manager_name"].isin(vac["manager_name"]),
                     "quota_usd"].sum()) if len(vac) else None,
         "total_lost_usd": _r(o["lost_usd"].sum(), 0),
-        "past_due_negotiation_weighted_usd": _r(op.loc[op["past_due"] & (op["pipeline_stage"] == "Negotiation"),
+        # the last open stage (whatever the CRM calls it) is where a slipped deal costs the most
+        "final_stage": (final := cfg["stages"]["open"][-1]),
+        "past_due_final_stage_weighted_usd": _r(op.loc[op["past_due"] & (op["pipeline_stage"] == final),
                                                        "weighted_open_usd"].sum(), 0),
-        "past_due_negotiation_deals": int((op["past_due"] & (op["pipeline_stage"] == "Negotiation")).sum()),
+        "past_due_final_stage_deals": int((op["past_due"] & (op["pipeline_stage"] == final)).sum()),
     }
     return facts
 
@@ -661,9 +681,9 @@ def action_plan(facts: dict) -> dict:
     if v["orphaned_open_deals"]:
         plan["14"].append({"action": f"Reassign the {v['orphaned_open_deals']} deals with no owner "
                                      f"({m(v['orphaned_open_usd'])}) today", "owner": vac_mgrs or "Managers"})
-    if d["past_due_negotiation_deals"]:
-        plan["14"].append({"action": f"Review the {d['past_due_negotiation_deals']} past-due Negotiation deals "
-                                     f"({m(d['past_due_negotiation_weighted_usd'])} weighted): confirm a dated next step "
+    if d["past_due_final_stage_deals"]:
+        plan["14"].append({"action": f"Review the {d['past_due_final_stage_deals']} past-due {d['final_stage']} deals "
+                                     f"({m(d['past_due_final_stage_weighted_usd'])} weighted): confirm a dated next step "
                                      f"or move them out of the quarter", "owner": "All managers"})
     if ph["past_due_weighted_usd"] > 0:
         risk = facts["scenarios"][1]

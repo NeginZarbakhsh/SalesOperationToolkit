@@ -1,10 +1,46 @@
 {
-  "_readme": "Everything that changes per quarter or per region lives here, not in the code. Paths are relative to this file. 'auto' means the toolkit infers the value from the data and prints what it inferred.",
+  "_readme": "Everything that changes per quarter, per region or per CRM lives here, not in the code. Paths are relative to this file. 'auto' means the toolkit infers the value from the data and prints what it inferred.",
 
-  "region_name": "APAC",
-  "opportunity_file": "data/sample_opportunities.csv",
-  "roster_file": "data/sample_rep_roster.csv",
+  "region_name": "North America",
+  "opportunity_file": "data/crm_opportunities_export.csv",
+  "roster_file": "data/crm_user_quotas_export.csv",
   "output_dir": "outputs",
+
+  "_columns_readme": "Maps the CRM export's own headers onto the toolkit's field names. The sample files use Salesforce-style names; point these at your own export's headers and nothing else has to change.",
+  "columns": {
+    "win_probability_scale": 100,
+    "opportunity": {
+      "opp_id": "Id",
+      "account_id": "AccountId",
+      "account_name": "Account.Name",
+      "segment": "Segment__c",
+      "country": "Account.BillingCountry",
+      "rep_name": "Owner.Name",
+      "manager_name": "Owner.Manager__c",
+      "deal_type": "Type",
+      "pipeline_stage": "StageName",
+      "forecast_category": "ForecastCategoryName",
+      "created_date": "CreatedDate",
+      "close_date": "CloseDate",
+      "age_days": "Age_Days__c",
+      "amount_local": "Amount",
+      "currency": "CurrencyIsoCode",
+      "amount_usd": "ConvertedAmount",
+      "win_probability": "Probability",
+      "loss_reason": "Loss_Reason__c"
+    },
+    "roster": {
+      "rep_name": "User.Name",
+      "manager_name": "Manager.Name",
+      "country": "Territory_Country__c",
+      "segment": "Segment__c",
+      "quota_usd": "Quota_USD__c",
+      "tenure_months": "Tenure_Months__c",
+      "headcount_status": "User_Status__c",
+      "historical_attainment_pct_q_minus_1": "Attainment_Prior_Q1__c",
+      "historical_attainment_pct_q_minus_2": "Attainment_Prior_Q2__c"
+    }
+  },
 
   "snapshot_date": "auto",
   "quarter_start": "auto",
@@ -12,9 +48,9 @@
   "reported_forecast_pct": 0.89,
 
   "stages": {
-    "open": ["Prospecting", "Qualification", "Proposal", "Negotiation"],
+    "open": ["Prospecting", "Qualification", "Proposal/Price Quote", "Negotiation/Review"],
     "early": ["Prospecting", "Qualification"],
-    "late": ["Proposal", "Negotiation"],
+    "late": ["Proposal/Price Quote", "Negotiation/Review"],
     "won": "Closed Won",
     "lost": "Closed Lost"
   },
@@ -23,8 +59,7 @@
   "fx_tolerance": 0.02,
 
   "country_aliases": {
-    "Australia": "AU", "New Zealand": "NZ", "Japan": "JP", "Singapore": "SG",
-    "India": "IN", "South Korea": "KR", "Korea": "KR"
+    "United States": "US", "USA": "US", "Canada": "CA", "Mexico": "MX", "Brazil": "BR", "Brasil": "BR"
   },
 
   "active_headcount_status": "Active",

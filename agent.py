@@ -119,10 +119,10 @@ TOOLS = [
             "properties": {
                 "manager": {"type": "string", "description": "manager name or part of it"},
                 "rep": {"type": "string", "description": "rep name or part of it"},
-                "country": {"type": "string", "description": "ISO code (DE, FR, NL, IT, ES, UK) or country name"},
+                "country": {"type": "string", "description": "country code or name as it appears in the roster"},
                 "segment": {"type": "string"},
                 "status": {"type": "string", "enum": ["open", "won", "lost", "any"], "description": "default open"},
-                "stage": {"type": "string", "enum": ["Prospecting", "Qualification", "Proposal", "Negotiation"]},
+                "stage": {"type": "string"},
                 "past_due": {"type": "boolean", "description": "only open deals whose close date has already passed"},
                 "orphaned": {"type": "boolean", "description": "only open deals owned by a vacant (Open Req) seat"},
                 "stalled": {"type": "boolean", "description": "only early-stage deals older than the stall threshold"},
@@ -360,6 +360,21 @@ class ForecastAgent:
             client = anthropic.Anthropic()
         self.client = client
 
+    def _tool_spec(self) -> list[dict]:
+        """The tool list, with the stage names and countries of the data that was actually loaded."""
+        import copy
+
+        spec = copy.deepcopy(TOOLS)
+        stages = self.res.cfg["stages"]
+        countries = sorted(self.res.roster["country"].dropna().unique())
+        for tool in spec:
+            props = tool["input_schema"]["properties"]
+            if "stage" in props:
+                props["stage"]["enum"] = list(stages["open"]) + [stages["won"], stages["lost"]]
+            if "country" in props:
+                props["country"]["description"] = f"one of: {', '.join(countries)}"
+        return spec
+
     def _call(self):
         return self.client.beta.messages.create(
             model=self.model,
@@ -369,7 +384,7 @@ class ForecastAgent:
             thinking={"type": "adaptive"},
             output_config={"effort": self.effort},
             system=SYSTEM_PROMPT,
-            tools=TOOLS,
+            tools=self._tool_spec(),
             messages=self.messages,
         )
 
