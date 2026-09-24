@@ -45,13 +45,8 @@ How to answer:
 # Credentials: read from the environment or a local .env file. The key never lives in code.
 # --------------------------------------------------------------------------------------
 def load_env_file(path: Path = HERE / ".env") -> None:
-    if not path.exists():
-        return
-    for line in path.read_text(encoding="utf-8").splitlines():
-        line = line.strip()
-        if line and not line.startswith("#") and "=" in line:
-            k, v = line.split("=", 1)
-            os.environ.setdefault(k.strip(), v.strip().strip('"').strip("'"))
+    """Same .env loader the toolkit uses, so the app and the command line behave identically."""
+    fd.load_env_file(path)
 
 
 def ai_available() -> bool:

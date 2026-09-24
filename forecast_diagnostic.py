@@ -67,6 +67,19 @@ def load_config(path: str | Path | None = None, **overrides) -> dict:
     return cfg
 
 
+def load_env_file(path: str | Path | None = None) -> None:
+    """Read KEY=value lines from a .env next to this module, so a local key works without exporting it.
+    Values already in the environment win; the file is never required."""
+    path = Path(path) if path else HERE / ".env"
+    if not path.exists():
+        return
+    for line in path.read_text(encoding="utf-8").splitlines():
+        line = line.strip()
+        if line and not line.startswith("#") and "=" in line:
+            key, value = line.split("=", 1)
+            os.environ.setdefault(key.strip(), value.strip().strip('"').strip("'"))
+
+
 def _check_schema(df: pd.DataFrame, required: list[str], name: str, mapping: dict | None) -> None:
     missing = [c for c in required if c not in df.columns]
     if missing:
@@ -605,6 +618,10 @@ def build_facts(res: "Results") -> dict:
             / r.loc[(r["headcount_status"] == cfg["active_headcount_status"]) & r["manager_name"].isin(vac["manager_name"]),
                     "quota_usd"].sum()) if len(vac) else None,
         "total_lost_usd": _r(o["lost_usd"].sum(), 0),
+        # what the past-due pipeline is worth at the haircut in the config: the writer needs this to
+        # describe the downside without deriving it (a derived number would fail verification)
+        "past_due_weighted_at_haircut_usd": _r(op["past_due_weighted_usd"].sum()
+                                               * (1 - cfg["thresholds"]["past_due_haircut"]), 0),
         # the last open stage (whatever the CRM calls it) is where a slipped deal costs the most
         "final_stage": (final := cfg["stages"]["open"][-1]),
         "past_due_final_stage_weighted_usd": _r(op.loc[op["past_due"] & (op["pipeline_stage"] == final),
@@ -795,6 +812,7 @@ def ai_summary(facts: dict, cfg: dict) -> tuple[str, str]:
     """Ask Claude to write the VP summary from the facts pack. Returns (text, source)."""
     import anthropic  # optional dependency: only needed for this step
 
+    load_env_file()
     has_creds = any(os.environ.get(k) for k in ("ANTHROPIC_API_KEY", "ANTHROPIC_AUTH_TOKEN", "ANTHROPIC_PROFILE")) \
         or (Path.home() / ".config" / "anthropic").exists()
     if not has_creds:

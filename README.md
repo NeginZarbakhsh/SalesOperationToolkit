@@ -5,7 +5,7 @@
 [![CI](https://github.com/NeginZarbakhsh/SalesOperationToolkit/actions/workflows/ci.yml/badge.svg)](https://github.com/NeginZarbakhsh/SalesOperationToolkit/actions/workflows/ci.yml)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
-[![Tests](https://img.shields.io/badge/tests-14%20passing-brightgreen)](tests/test_pipeline.py)
+[![Tests](https://img.shields.io/badge/tests-16%20passing-brightgreen)](tests/test_pipeline.py)
 
 Point it at two ordinary CRM report exports — opportunities and user quotas — and it answers the question a
 VP of Sales actually asks: **why are we missing the number, where exactly, and what do we do in the next 14
@@ -136,7 +136,7 @@ python data/generate_sample_data.py   # optional: rebuild the synthetic sample e
 
 python forecast_diagnostic.py     # full run → outputs/ (Excel, charts, summary.md, facts.json)
 streamlit run app.py              # the dashboard
-pytest -q                         # 14 tests on the sample data
+pytest -q                         # 16 tests on the sample data
 ```
 
 Optional AI features: `cp .env.example .env` and add your own `ANTHROPIC_API_KEY` (`.env` is git-ignored).
@@ -191,7 +191,7 @@ config.json                   everything that changes per quarter or per region
 prompts/vp_summary_prompt.md  system prompt for the AI briefing (tone and format live here, not in code)
 data/                         synthetic sample data + the generator that makes it
 notebooks/walkthrough.ipynb   the pipeline step by step, with results
-tests/test_pipeline.py        14 end-to-end tests, run in CI on 3.11 and 3.12
+tests/test_pipeline.py        16 end-to-end tests, run in CI on 3.11 and 3.12
 docs/                         sample briefing and the screenshots above
 ```
 

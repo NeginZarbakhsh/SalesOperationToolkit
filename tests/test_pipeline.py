@@ -118,3 +118,24 @@ def test_invented_numbers_are_rejected(res):
     text = "The region is forecasting $12.34M, which is 77.7% of quota, with 4321 open deals."
     check = fd.verify_numbers(text, res.facts)
     assert not check["verified"].all()               # this is what stops a hallucination shipping
+
+
+# ---- optional AI credentials ---------------------------------------------------------------
+def test_a_local_env_file_is_read_without_overriding_the_environment(tmp_path, monkeypatch):
+    env = tmp_path / ".env"
+    env.write_text(chr(10).join(["# a comment line",
+                                 'ANTHROPIC_API_KEY="sk-ant-from-file"',
+                                 "OTHER=plain", ""]), encoding="utf-8")
+    monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+    monkeypatch.setenv("OTHER", "already-set")
+    fd.load_env_file(env)
+    import os
+    assert os.environ["ANTHROPIC_API_KEY"] == "sk-ant-from-file"   # picked up for the optional AI step
+    assert os.environ["OTHER"] == "already-set"                    # a real environment variable still wins
+
+
+def test_the_facts_pack_carries_the_haircut_value(res):
+    """The summary writer must never derive a number: the downside figure is pre-computed for it."""
+    d = res.facts["derived"]
+    expected = res.facts["pipeline_hygiene"]["past_due_weighted_usd"] * 0.5
+    assert d["past_due_weighted_at_haircut_usd"] == pytest.approx(expected, abs=1)
