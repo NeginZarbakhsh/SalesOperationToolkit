@@ -1,0 +1,28 @@
+[theme]
+base = "light"
+primaryColor = "#0A66C2"
+backgroundColor = "#F4F2EE"
+secondaryBackgroundColor = "#FFFFFF"
+textColor = "#191919"
+linkColor = "#0A66C2"
+blueColor = "#0A66C2"
+redColor = "#CC1016"
+greenColor = "#057642"
+orangeColor = "#B24020"
+font = "Segoe UI, -apple-system, BlinkMacSystemFont, Roboto, Helvetica Neue, Arial, sans-serif"
+headingFont = "Segoe UI, -apple-system, BlinkMacSystemFont, Roboto, Helvetica Neue, Arial, sans-serif"
+headingFontWeights = [700, 600, 600, 600, 600, 600]
+metricValueFontWeight = 600
+baseRadius = "0.75rem"
+buttonRadius = "1.5rem"
+borderColor = "#E0DFDC"
+dataframeBorderColor = "#E8E6E3"
+dataframeHeaderBackgroundColor = "#F8F7F5"
+showWidgetBorder = true
+chartCategoricalColors = ["#0A66C2", "#B24020", "#057642", "#915907", "#7A3E9D", "#666666"]
+
+[browser]
+gatherUsageStats = false
+
+[server]
+headless = true

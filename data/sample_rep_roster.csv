@@ -1,0 +1,30 @@
+rep_name,manager_name,country,segment,quota_usd,tenure_months,headcount_status,historical_attainment_pct_q_minus_1,historical_attainment_pct_q_minus_2
+Noel Adeyemi,Priya Raman,AU,ENT,600000,26,Active,1.05,0.96
+Ivy Chen,Priya Raman,AU,ENT,600000,18,Active,1.02,1.08
+Rafael Dias,Priya Raman,AU,ENT,600000,36,Active,0.94,1.01
+Hana Oyelaran,Priya Raman,AU,ENT,600000,9,Active,0.97,0.93
+Arjun Mehta,Daniel Okafor,IN,MME,320000,30,Active,1.12,0.98
+Sara Villanueva,Daniel Okafor,IN,MME,320000,15,Active,0.96,1.04
+Leo Fischer,Daniel Okafor,IN,MME,320000,21,Active,1.01,0.92
+OPEN REQ (Nikhil Rao backfill pending),Daniel Okafor,IN,MME,320000,0,Open Req,0.99,0.88
+OPEN REQ (Grace Lim backfill pending),Daniel Okafor,IN,MME,320000,0,Open Req,0.91,1.03
+Kenji Sato,Mei Lin,JP,ENT,560000,22,Active,1.03,0.94
+Yuki Tanaka,Mei Lin,JP,ENT,560000,27,Active,0.88,0.86
+Diego Moreno,Mei Lin,JP,ENT,560000,12,Active,0.93,1.02
+Amara Nwosu,Mei Lin,JP,ENT,560000,8,Active,0.99,0.95
+Wei Zhang,Tom Baker,SG,SMB,200000,24,Active,1.06,1.12
+Farah Aziz,Tom Baker,SG,SMB,200000,10,Active,1.01,0.95
+Oliver Grant,Tom Baker,SG,SMB,200000,16,Active,0.92,0.97
+Nadia Haddad,Tom Baker,SG,SMB,200000,6,Active,0.98,1.06
+Samuel Adeyemi,Tom Baker,SG,SMB,200000,20,Active,1.09,0.94
+Min-Jun Park,Aisha Khan,KR,Acquisition,170000,19,Active,1.02,0.99
+Clara Bianchi,Aisha Khan,KR,Acquisition,170000,14,Active,0.87,0.89
+Tobias Lang,Aisha Khan,KR,Acquisition,170000,28,Active,0.95,1.07
+Ji-Woo Han,Aisha Khan,KR,Acquisition,170000,7,Active,1.04,0.93
+Elena Marchetti,Aisha Khan,KR,Acquisition,170000,33,Active,0.98,1.01
+Bilal Rahman,Aisha Khan,KR,Acquisition,170000,11,Active,1.03,0.96
+Ruby Callaghan,Lucas Ferreira,NZ,SMB,190000,23,Active,1.05,1.02
+Andre Silva,Lucas Ferreira,NZ,SMB,190000,13,Active,0.99,0.94
+Mia Thompson,Lucas Ferreira,NZ,SMB,190000,17,Active,0.97,1.08
+Hugo Marais,Lucas Ferreira,NZ,SMB,190000,5,Active,0.91,0.96
+Zara Iqbal,Lucas Ferreira,NZ,SMB,190000,29,Active,1.06,0.99

@@ -1,0 +1,9 @@
+pandas>=2.2
+numpy>=1.26
+matplotlib>=3.8      # charts written to outputs/
+openpyxl>=3.1        # Excel workbook export
+streamlit>=1.40      # the dashboard (app.py)
+altair>=5.0          # dashboard charts
+pillow>=10.0         # dashboard icon
+jupyter              # the walkthrough notebook
+anthropic>=1.0       # optional: AI summary and Ask AI (everything else works without it)

@@ -1,0 +1,52 @@
+{
+  "_readme": "Everything that changes per quarter or per region lives here, not in the code. Paths are relative to this file. 'auto' means the toolkit infers the value from the data and prints what it inferred.",
+
+  "region_name": "APAC",
+  "opportunity_file": "data/sample_opportunities.csv",
+  "roster_file": "data/sample_rep_roster.csv",
+  "output_dir": "outputs",
+
+  "snapshot_date": "auto",
+  "quarter_start": "auto",
+  "quarter_end": "auto",
+  "reported_forecast_pct": 0.89,
+
+  "stages": {
+    "open": ["Prospecting", "Qualification", "Proposal", "Negotiation"],
+    "early": ["Prospecting", "Qualification"],
+    "late": ["Proposal", "Negotiation"],
+    "won": "Closed Won",
+    "lost": "Closed Lost"
+  },
+
+  "fx_to_usd": "auto",
+  "fx_tolerance": 0.02,
+
+  "country_aliases": {
+    "Australia": "AU", "New Zealand": "NZ", "Japan": "JP", "Singapore": "SG",
+    "India": "IN", "South Korea": "KR", "Korea": "KR"
+  },
+
+  "active_headcount_status": "Active",
+
+  "thresholds": {
+    "stalled_age_days": 90,
+    "chronic_underperformance": 0.90,
+    "commit_min_win_prob": 0.50,
+    "uncommitted_high_win_prob": 0.70,
+    "rep_concentration_share": 0.50,
+    "past_due_haircut": 0.50
+  },
+
+  "ai_summary": {
+    "enabled": true,
+    "model": "claude-opus-5",
+    "effort": "medium",
+    "prompt_file": "prompts/vp_summary_prompt.md"
+  },
+
+  "agent": {
+    "model": "claude-opus-5",
+    "effort": "medium"
+  }
+}
